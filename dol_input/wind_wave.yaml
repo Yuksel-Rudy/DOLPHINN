@@ -1,4 +1,4 @@
-training_dataset: "MLSTM_WRP/data/windwave.csv"
+training_dataset: "data/windwave.csv"
 dof:
   - "Surge"
   - "Heave"

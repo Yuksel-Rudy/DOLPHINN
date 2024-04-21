@@ -1,4 +1,4 @@
-training_dataset: "MLSTM_WRP/data/KF_above_rated.csv"
+training_dataset: "data/KF_above_rated.csv"
 dof:
   - "Surge"
   - "Heave"
