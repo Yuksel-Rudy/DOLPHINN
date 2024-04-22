@@ -13,7 +13,7 @@ In this example:
 """
 
 # Configure
-TEST = "2"
+TEST = "2a"
 DOLPHINN_PATH = os.path.join("saved_models", "1a", "wave_model")
 DATA_PATH = os.path.join("data", "S31_10Hz_FS.csv")
 PRESENT_TIME = 10000
