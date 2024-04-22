@@ -23,7 +23,7 @@ conversion:
   - 0.001
   - 0.001
   - 0.001
-time_horizon: 20
+time_horizon: 20  # seconds
 nm: 0.588482
 hidden_layer: 1
 neuron_number: 96
