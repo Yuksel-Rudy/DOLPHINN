@@ -217,7 +217,7 @@ class DOLPHINN:
             r_square[i] = r_value_wrp ** 2
         return r_square, mae, y, y_hat
 
-    def predict(self, time, state, wave, convert=True, history=0):
+    def predict(self, time, state, wave, history=0):
         """
         Predicts future states based on the past/present states and past/present/future wave data.
         Notes:
@@ -232,7 +232,6 @@ class DOLPHINN:
         :param time: DataFrame containing corresponding time to wave
         :param state: DataFrame containing state variables up to the present time.
         :param wave: DataFrame containing wave data extending beyond the state data by m timesteps.
-        :param convert: (default True) Flag to determine whether unit conversion is needed or not.
         :param history: (default 0) How far to the past (s) should the predictor provide data for. (must be positive)
         """
         input_timestep = time.iloc[-1] - time.iloc[-2]  # assuming timesteps do not change.
@@ -270,10 +269,7 @@ class DOLPHINN:
 
         data = p2v.PreProcess(raw_dataset=smalldata)
         data.time_interpolator(self.timestep)
-        if convert:
-            dof_df = data.convert_extract(self.dof, self.conversion)
-        else:
-            dof_df = data.dataset[self.dof]
+        dof_df = data.dataset[self.dof]
 
         wve_df = data.dataset["wave"]
         dofwve_df = pd.concat([dof_df, wve_df], axis=1).values
