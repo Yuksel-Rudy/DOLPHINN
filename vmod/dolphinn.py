@@ -14,6 +14,11 @@ from tensorflow.keras.models import load_model
 
 class DOLPHINN:
     def __init__(self):
+        self.dropped_labels = None
+        self.label_idx = None
+        self.features = None
+        self.labels = None
+        self.labels_dropped = None
         self.future_lower_lim = None
         self.past_lower_lim = None
         self.n = None
@@ -142,7 +147,16 @@ class DOLPHINN:
         self.prep.nan_check()
         self.correlation_matrix = self.prep.idle_sensors_check()
 
-    def train(self, config_path=None):
+    def drop_labels(self, supervised_data):
+        columns_to_drop = [col for col in supervised_data.columns
+                           if any(f"var{label}(t+" in col for label in self.dropped_labels)]
+        supervised_data = supervised_data.drop(columns=columns_to_drop)
+        self.labels = [label for label in self.labels if label not in self.dropped_labels]
+        self.label_idx = [label - 1 for label in self.labels]
+        self.unit = [unit for idx, unit in enumerate(self.unit) if idx in self.label_idx]
+        return supervised_data
+
+    def train(self, config_path=None, labels_to_be_dropped=False):
         if config_path:
             self.config_path = config_path
             self.load_config()
@@ -151,8 +165,11 @@ class DOLPHINN:
         self.prep.time_interpolator(self.timestep)
         batch_size = int(np.round(self.batch_time / self.timestep, 0))
         dof_df = self.prep.convert_extract(self.dof, self.conversion)
-        wve_df = self.prep.dataset["wave"]
-        dofwve_df = pd.concat([dof_df, wve_df], axis=1).values
+        if self.wave_prediction:
+            wve_df = self.prep.dataset["wave"]
+            dofwve_df = pd.concat([dof_df, wve_df], axis=1).values
+        else:
+            dofwve_df = dof_df
 
         # Normalize and scale
         self.scaler = MinMaxScaler(feature_range=(0, 1))
@@ -160,7 +177,7 @@ class DOLPHINN:
         supervised_data = self.prep.series_to_supervised(
             scaled,
             wind_var_number=None,
-            wave_var_number=len(self.dof) + 1,
+            wave_var_number=[len(self.dof) + 1 if self.wave_prediction else None],
             n_in=self.n,
             n_out=self.m,
             wind_predictor=self.wind_prediction,
@@ -169,23 +186,28 @@ class DOLPHINN:
         # Build, compile, and fit
         past_wind = future_wind = self.wind_prediction
         past_wave = future_wave = self.wave_prediction
-        features = list(np.arange(1, len(self.dof) + 1, 1))
-        labels = list(np.arange(1, len(self.dof) + 1, 1))
+        self.features = list(np.arange(1, len(self.dof) + 1, 1))
+        self.labels = list(np.arange(1, len(self.dof) + 1, 1))
+
+        if labels_to_be_dropped:
+            self.dropped_labels = labels_to_be_dropped
+            self.labels_dropped = True
+            supervised_data = self.drop_labels(supervised_data)
 
         self.mlstm_wrp.split_train_test(supervised_data=supervised_data,
                                         train_ratio=self.train_ratio,
                                         valid_ratio=self.valid_ratio,
                                         past_timesteps=self.n,
                                         future_timesteps=self.m,
-                                        features=features,
-                                        labels=labels,
+                                        features=self.features,
+                                        labels=self.labels,
                                         past_wind=past_wind,
                                         future_wind=future_wind,
                                         past_wave=past_wave,
                                         future_wave=future_wave)
         self.mlstm_wrp.build_and_compile_model(hidden_layer=self.hidden_layer,
                                                neuron_number=self.neuron_number,
-                                               last_layer=len(labels),
+                                               last_layer=len(self.labels),
                                                lr=self.lr,
                                                dropout=self.dropout)
         self.mlstm_wrp.model.fit(self.mlstm_wrp.train_X, self.mlstm_wrp.train_Y, epochs=self.epochs,
@@ -196,19 +218,24 @@ class DOLPHINN:
     def test(self):
         # y
         orig_Y = self.mlstm_wrp.test_Y
-        dummy_array = np.zeros((orig_Y.shape[0], len(self.dof) + 1 if True else 0))
+        dummy_array = np.zeros((orig_Y.shape[0], len(self.dof) + 1 if self.wave_prediction else len(self.dof)))
         dummy_array[:, :len(self.dof)] = orig_Y
         reversed_array = self.scaler.inverse_transform(dummy_array)
         y = reversed_array[:, :len(self.dof)]
+        if self.labels_dropped:
+            y = reversed_array[:, self.label_idx]
         # yhat
         test_Y = self.mlstm_wrp.model.predict(self.mlstm_wrp.test_X)
-        dummy_array = np.zeros((test_Y.shape[0], len(self.dof) + 1 if True else 0))
+        dummy_array = np.zeros((test_Y.shape[0], len(self.dof) + 1 if self.wave_prediction else len(self.dof)))
         dummy_array[:, :len(self.dof)] = test_Y
         reversed_array = self.scaler.inverse_transform(dummy_array)
         y_hat = reversed_array[:, :len(self.dof)]
-        r_square = np.zeros(len(self.dof))
-        mae = np.zeros(len(self.dof))
-        labels = list(np.arange(1, len(self.dof) + 1, 1))
+        if self.labels_dropped:
+            y_hat = reversed_array[:, self.label_idx]
+
+        r_square = np.zeros(len(self.labels))
+        mae = np.zeros(len(self.labels))
+        labels = list(np.arange(1, len(self.labels) + 1, 1))
         for i, label in enumerate(labels):
             label_index = label - 1
             _, _, r_value_wrp, _, _ = linregress(y[:, label_index],
@@ -270,9 +297,12 @@ class DOLPHINN:
         data = p2v.PreProcess(raw_dataset=smalldata)
         data.time_interpolator(self.timestep)
         dof_df = data.dataset[self.dof]
+        if self.wave_prediction:
+            wve_df = data.dataset["wave"]
+            dofwve_df = pd.concat([dof_df, wve_df], axis=1).values
+        else:
+            dofwve_df = dof_df
 
-        wve_df = data.dataset["wave"]
-        dofwve_df = pd.concat([dof_df, wve_df], axis=1).values
         # Step 3: Scale based on the pre-assigned scaler
         scaled = self.scaler.transform(dofwve_df)
 
@@ -280,11 +310,13 @@ class DOLPHINN:
         supervised_data = data.series_to_supervised(
             data=scaled,
             wind_var_number=None,
-            wave_var_number=len(self.dof) + 1,
+            wave_var_number=[len(self.dof) + 1 if self.wave_prediction else None],
             n_in=self.n,
             n_out=self.m,
             wind_predictor=self.wind_prediction,
             wave_predictor=self.wave_prediction)
+        if self.labels_dropped:
+            supervised_data = self.drop_labels(supervised_data, labels_to_be_dropped)
 
         # Step 5: Split all data as test data (train_ratio and valid_ratio are zero)
         self.mlstm_wrp.split_train_test(
@@ -293,8 +325,8 @@ class DOLPHINN:
             valid_ratio=0.0,
             past_timesteps=self.n,
             future_timesteps=self.m,
-            features=list(np.arange(1, len(self.dof) + 1)),
-            labels=list(np.arange(1, len(self.dof) + 1)),
+            features=self.features,
+            labels=self.labels,
             past_wind=self.wind_prediction,
             future_wind=self.wind_prediction,
             past_wave=self.wave_prediction,
@@ -310,7 +342,11 @@ class DOLPHINN:
         t_hat = np.linspace(time.iloc[-(future_index_original + int(history/input_timestep))].item(),
                             time.iloc[-1].item(),
                             self.m + int(history/self.timestep))
-        y_hat = pd.DataFrame(reversed_array[-(self.m + int(history/self.timestep)):, :len(self.dof)])
+        if self.labels_dropped:
+            y_hat = pd.DataFrame(reversed_array[-(self.m + int(history/self.timestep)):, self.label_idx])
+        else:
+            y_hat = pd.DataFrame(reversed_array[-(self.m + int(history / self.timestep)):, :len(self.dof)])
+
         t_pred = time[-(future_index_original + int(history/input_timestep)):].reset_index(drop=True)
         y_hat = pd.DataFrame(
             np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T, columns=state.columns)
