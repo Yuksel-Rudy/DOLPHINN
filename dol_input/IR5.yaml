@@ -1,4 +1,4 @@
-training_dataset: "data/FOCAL_wavedata/scaledup/IR_5.csv"
+training_dataset: "data/FOCAL_wavedata/scaledup/IR-5.csv"
 dof:
   - "wave1"
   - "wave2"

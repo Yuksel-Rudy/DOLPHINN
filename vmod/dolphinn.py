@@ -66,16 +66,18 @@ class DOLPHINN:
 
         # Save necessary attributes
         attributes_path = os.path.join(directory, 'attributes.pkl')
+        # Filter attributes to avoid saving built-in properties or methods
+        excluded_attributes = ['mlstm_wrp']
+        attrs = {k: v for k, v in self.__dict__.items()
+                 if not k.startswith('__') and not callable(v) and k not in excluded_attributes}
+
         with open(attributes_path, 'wb') as f:
-            pickle.dump({
-                'prep': self.prep,
-            }, f)
+            pickle.dump(attrs, f)
 
     def load(self, directory):
         """Load the complete state of the class."""
         # Load configuration
         self.config_path = os.path.join(directory, 'config.yaml')
-        self.load_config()
 
         # Load the model
         model_path = os.path.join(directory, 'model.keras')
@@ -89,7 +91,11 @@ class DOLPHINN:
         attributes_path = os.path.join(directory, 'attributes.pkl')
         with open(attributes_path, 'rb') as f:
             attributes = pickle.load(f)
-            self.prep = attributes['prep']
+            for attr_name, attr_value in attributes.items():
+                setattr(self, attr_name, attr_value)
+
+        # override configuration attributes to be read from config file
+        self.load_config()
 
     def load_config(self):
         """Load MLSTM configuration from a YAML file."""
@@ -151,9 +157,10 @@ class DOLPHINN:
         columns_to_drop = [col for col in supervised_data.columns
                            if any(f"var{label}(t+" in col for label in self.dropped_labels)]
         supervised_data = supervised_data.drop(columns=columns_to_drop)
-        self.labels = [label for label in self.labels if label not in self.dropped_labels]
-        self.label_idx = [label - 1 for label in self.labels]
-        self.unit = [unit for idx, unit in enumerate(self.unit) if idx in self.label_idx]
+        if not self.labels_dropped:
+            self.labels = [label for label in self.labels if label not in self.dropped_labels]
+            self.label_idx = [label - 1 for label in self.labels]
+            self.unit = [unit for idx, unit in enumerate(self.unit) if idx in self.label_idx]
         return supervised_data
 
     def train(self, config_path=None, labels_to_be_dropped=False):
@@ -191,8 +198,8 @@ class DOLPHINN:
 
         if labels_to_be_dropped:
             self.dropped_labels = labels_to_be_dropped
-            self.labels_dropped = True
             supervised_data = self.drop_labels(supervised_data)
+            self.labels_dropped = True
 
         self.mlstm_wrp.split_train_test(supervised_data=supervised_data,
                                         train_ratio=self.train_ratio,
@@ -251,11 +258,9 @@ class DOLPHINN:
         1) All input does not have to be on the same timestamp as the trained network.
         2) State has a smaller length than wave since we are anticipating future wave readings.
         3) Name of the input columns do not have to be exactly as anticipated because this subroutines
-         appropriately rename them. Length of state must, however, match with self.dof and time and wave has to have
+         appropriately rename them. Column number of state must, however, match with self.dof and time and wave has to have
          the same length.
-        4) Make sure states if states are converted based on the config file [unit]s, toggle convert off. Otherwise,
-        5) When history=0, this function only gives future prediction with no history of previous predictions.
-        make sure you have the same units as the trained network before conversion.
+        4) When history=0, this function only gives future prediction with no history of previous predictions.
         :param time: DataFrame containing corresponding time to wave
         :param state: DataFrame containing state variables up to the present time.
         :param wave: DataFrame containing wave data extending beyond the state data by m timesteps.
@@ -316,7 +321,7 @@ class DOLPHINN:
             wind_predictor=self.wind_prediction,
             wave_predictor=self.wave_prediction)
         if self.labels_dropped:
-            supervised_data = self.drop_labels(supervised_data, labels_to_be_dropped)
+            supervised_data = self.drop_labels(supervised_data)
 
         # Step 5: Split all data as test data (train_ratio and valid_ratio are zero)
         self.mlstm_wrp.split_train_test(
@@ -350,6 +355,113 @@ class DOLPHINN:
         t_pred = time[-(future_index_original + int(history/input_timestep)):].reset_index(drop=True)
         y_hat = pd.DataFrame(
             np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T, columns=state.columns)
+
+        # # Unify mean values
+        # y_hat += dof_df.mean() - y_hat.mean()
+
+        # shift by 1
+        t_pred = t_pred.shift(1 * int(self.timestep / input_timestep))
+        t_pred = t_pred.dropna()
+        y_hat = y_hat.loc[t_pred.index].reset_index(drop=True)
+        t_pred.reset_index(drop=True)
+        return t_pred, y_hat
+
+    def wrp_predict(self, time, past_wave, history=0):
+        """
+        Predicts downstream future wave based on the past/present upstream waves.
+        Notes:
+        1) All input does not have to be on the same timestamp as the trained network.
+        2) Name of the input columns do not have to be exactly as anticipated because this subroutines
+         appropriately rename them. column number of past_wave must, however, match with self.dof and time must have
+         a larger length than past_wave because it includes with it the future time at which we're predicting the wave.
+        3) When history=0, this function only gives future prediction with no history of previous predictions.
+        :param time: DataFrame containing history time and future time of prediction
+        :param past_wave: DataFrame containing state variables up to the present time.
+        :param history: (default 0) How far to the past (s) should the predictor provide data for. (must be positive)
+        """
+        input_timestep = time.iloc[-1] - time.iloc[-2]  # assuming timesteps do not change.
+        # Step 0: Check if state has the correct number of columns
+        if past_wave.shape[1] != len(self.dof):
+            raise ValueError(f"The 'past_wave' DataFrame must have {len(self.dof)} columns, with DOF: {self.dof}.")
+
+        # Step 1: Make state and wave the same length by appending synthetic future state data
+        future_index_original = len(time) - len(past_wave)
+
+        if future_index_original < 0:
+            raise ValueError("past_wave data should not exceed time data in length.")
+
+        synthetic_data = pd.DataFrame(0, index=np.arange(future_index_original), columns=past_wave.columns)  # Zero-filled DataFrame
+        state_updated = pd.concat([past_wave, synthetic_data], ignore_index=True)
+
+        # Step 2: Prepare data (bigdata -> smalldata -> preprocess -> interpolate -> concatenate
+        bigdata = pd.concat([time, state_updated], axis=1)
+        red_idx = int((2*self.time_horizon + self.nm * self.time_horizon + history - 1*self.timestep)/input_timestep)
+        if red_idx > bigdata.shape[0]:
+            # Check if reducing historical prediction helps
+            history -= (red_idx - bigdata.shape[0]) * input_timestep
+            red_idx = int(
+                (2 * self.time_horizon + self.nm * self.time_horizon + history - 1 * self.timestep) / input_timestep)
+            if history < 0:
+                raise ValueError("Not enough datapoints to produce prediction")
+            else:
+                print(f"setting history to {np.round(history, 2)}s")
+        smalldata = bigdata.iloc[-red_idx:]
+        # Rename columns
+        smalldata.columns = ["Time"] + self.dof
+
+        data = p2v.PreProcess(raw_dataset=smalldata)
+        data.time_interpolator(self.timestep)
+        dof_df = data.dataset[self.dof]
+        dofwve_df = dof_df
+
+        # Step 3: Scale based on the pre-assigned scaler
+        scaled = self.scaler.transform(dofwve_df)
+
+        # Step 4: Supervise data
+        supervised_data = data.series_to_supervised(
+            data=scaled,
+            wind_var_number=None,
+            wave_var_number=[len(self.dof) + 1 if self.wave_prediction else None],
+            n_in=self.n,
+            n_out=self.m,
+            wind_predictor=self.wind_prediction,
+            wave_predictor=self.wave_prediction)
+        if self.labels_dropped:
+            supervised_data = self.drop_labels(supervised_data)
+
+        # Step 5: Split all data as test data (train_ratio and valid_ratio are zero)
+        self.mlstm_wrp.split_train_test(
+            supervised_data=supervised_data,
+            train_ratio=0.0,
+            valid_ratio=0.0,
+            past_timesteps=self.n,
+            future_timesteps=self.m,
+            features=self.features,
+            labels=self.labels,
+            past_wind=self.wind_prediction,
+            future_wind=self.wind_prediction,
+            past_wave=self.wave_prediction,
+            future_wave=self.wave_prediction)
+
+        # Step 6: Predict using the model
+        test_Y = self.mlstm_wrp.model.predict(self.mlstm_wrp.test_X)
+
+        # Unscaling predicted data
+        dummy_array = np.zeros((test_Y.shape[0], len(self.dof) + 1 if self.wave_prediction else len(self.dof)))
+        dummy_array[:, :len(self.dof)] = test_Y
+        reversed_array = self.scaler.inverse_transform(dummy_array)
+        t_hat = np.linspace(time.iloc[-(future_index_original + int(history/input_timestep))].item(),
+                            time.iloc[-1].item(),
+                            self.m + int(history/self.timestep))
+        if self.labels_dropped:
+            y_hat = pd.DataFrame(reversed_array[-(self.m + int(history/self.timestep)):, self.label_idx])
+        else:
+            y_hat = pd.DataFrame(reversed_array[-(self.m + int(history / self.timestep)):, :len(self.dof)])
+
+        t_pred = time[-(future_index_original + int(history/input_timestep)):].reset_index(drop=True)
+        y_hat = pd.DataFrame(
+            np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T,
+            columns=past_wave.columns[self.label_idx])
 
         # # Unify mean values
         # y_hat += dof_df.mean() - y_hat.mean()
