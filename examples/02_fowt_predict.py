@@ -14,12 +14,12 @@ In this example:
 
 # Configure
 TEST = "2a"
-DOLPHINN_PATH = os.path.join("saved_models", "1a", "wave_model")
-DATA_PATH = os.path.join("data", "S31_10Hz_FS.csv")
+DOLPHINN_PATH = os.path.join("..", "saved_models", "1a", "wave_model")
+DATA_PATH = os.path.join("..", "data", "S31_10Hz_FS.csv")
 PRESENT_TIME = 10000
 
-if not os.path.exists(os.path.join("figures", f"{TEST}")):
-    os.makedirs(os.path.join("figures", f"{TEST}"))
+if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
+    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()
@@ -41,4 +41,4 @@ plt.plot(time.iloc[0:t1_idx], state["PtfmTDZ"][0:t1_idx], color='black', label='
 plt.plot(t_pred, y_hat["PtfmTDZ"], color='red', linestyle='-', label='Predicted')
 plt.xlim((t1-250, t1+50))
 plt.legend()
-plt.savefig(fr".\figures\{TEST}\test.pdf", format="pdf")
+plt.savefig(fr"..\figures\{TEST}\test.pdf", format="pdf")

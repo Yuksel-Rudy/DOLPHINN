@@ -16,12 +16,12 @@ In this example:
 
 # Configure
 TEST = "wrp_predict_loop"
-DOLPHINN_PATH = os.path.join("saved_models", "1d", "IR4_model")
-DATA_PATH = os.path.join("data", "FOCAL_wavedata", "scaledup", "IR-4_testseed.csv")
+DOLPHINN_PATH = os.path.join("..", "saved_models", "1d", "IR4_model")
+DATA_PATH = os.path.join("..", "data", "FOCAL_wavedata", "scaledup", "IR-4_testseed.csv")
 FINAL_TIME = 100
 
-if not os.path.exists(os.path.join("figures", f"{TEST}")):
-    os.makedirs(os.path.join("figures", f"{TEST}"))
+if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
+    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()

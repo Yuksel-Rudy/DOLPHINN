@@ -13,9 +13,9 @@ In this example:
 
 # Configure
 TEST = "1b"
-CONFIG_FILE_PATH = os.path.join("dol_input", "wind_wave_dol.yaml")
-if not os.path.exists(os.path.join("figures", f"{TEST}")):
-    os.makedirs(os.path.join("figures", f"{TEST}"))
+CONFIG_FILE_PATH = os.path.join("..", "dol_input", "wind_wave_dol.yaml")
+if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
+    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()
@@ -38,7 +38,7 @@ for i, (label, unit) in enumerate(zip(dol.dof, dol.unit)):
     ax.grid()
 
 plt.tight_layout()
-plt.savefig(os.path.join("figures", f"{TEST}", "wind_wave.pdf"), format="pdf")
+plt.savefig(os.path.join("..", "figures", f"{TEST}", "wind_wave.pdf"), format="pdf")
 
 # save dolphinn
-dol.save(os.path.join("saved_models", f"{TEST}", "wind_wave_model"))
+dol.save(os.path.join("..", "saved_models", f"{TEST}", "wind_wave_model"))
