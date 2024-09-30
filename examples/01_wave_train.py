@@ -13,9 +13,9 @@ In this example:
 
 # Configure
 TEST = "1a"
-CONFIG_FILE_PATH = os.path.join("..", "dol_input", "wave.yaml")
-if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
-    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
+CONFIG_FILE_PATH = os.path.join("dol_input", "wave.yaml")
+if not os.path.exists(os.path.join("figures", f"{TEST}")):
+    os.makedirs(os.path.join("figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()

@@ -12,8 +12,8 @@ from vmod.dolphinn import DOLPHINN as DOL
 
 # Configure
 TEST = "streamlit example"
-DOLPHINN_PATH = os.path.join("..", "saved_models", "1d", "IR4_model")
-DATA_PATH = os.path.join("..", "data", "FOCAL_wavedata", "scaledup", "IR-4_testseed.csv")
+DOLPHINN_PATH = os.path.join("saved_models", "1d", "IR4_model")
+DATA_PATH = os.path.join("data", "FOCAL_wavedata", "scaledup", "IR-4_testseed.csv")
 FINAL_TIME = 500
 
 # call dolphinn

@@ -45,9 +45,9 @@ def objective(trial):
 
 
 TEST = "3"
-CONFIG_FILE_PATH = os.path.join("..", "dol_input", "init_dol.yaml")
-if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
-    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
+CONFIG_FILE_PATH = os.path.join("dol_input", "init_dol.yaml")
+if not os.path.exists(os.path.join("figures", f"{TEST}")):
+    os.makedirs(os.path.join("figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()
@@ -74,4 +74,4 @@ dol.train()
 r_square, mae, y, y_hat = dol.test()
 
 # save dolphinn
-dol.save(os.path.join("..", "saved_models", f"{TEST}", "OPT_model"))
+dol.save(os.path.join("saved_models", f"{TEST}", "OPT_model"))

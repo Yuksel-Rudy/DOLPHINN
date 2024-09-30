@@ -14,11 +14,11 @@ In this example:
 
 # Configure
 TEST = "2a"
-DOLPHINN_PATH = os.path.join("..", "saved_models", "1a", "wave_model")
-DATA_PATH = os.path.join("..", "data", "S31_10Hz_FS.csv")
+DOLPHINN_PATH = os.path.join("saved_models", "1a", "wave_model")
+DATA_PATH = os.path.join("data", "S31_10Hz_FS.csv")
 FINAL_TIME = 250
-if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
-    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
+if not os.path.exists(os.path.join("figures", f"{TEST}")):
+    os.makedirs(os.path.join("figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()

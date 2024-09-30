@@ -17,9 +17,9 @@ In this example:
 # Configure
 TEST = "1d"
 WAVE = "IR1"
-CONFIG_FILE_PATH = os.path.join("..", "dol_input", f"{WAVE}.yaml")
-if not os.path.exists(os.path.join("..", "figures", f"{TEST}")):
-    os.makedirs(os.path.join("..", "figures", f"{TEST}"))
+CONFIG_FILE_PATH = os.path.join("dol_input", f"{WAVE}.yaml")
+if not os.path.exists(os.path.join("figures", f"{TEST}")):
+    os.makedirs(os.path.join("figures", f"{TEST}"))
 
 # call dolphinn
 dol = DOL()
@@ -47,7 +47,7 @@ for i, (label, unit) in enumerate(zip(dol.labels, dol.unit)):
     ax.set_title(f"{WAVE}")
 
 plt.tight_layout()
-plt.savefig(os.path.join("..", "figures", f"{TEST}", f"{WAVE}_TD.pdf"), format="pdf")
+plt.savefig(os.path.join("figures", f"{TEST}", f"{WAVE}_TD.pdf"), format="pdf")
 
 # post-processing (FD)
 fig = plt.figure(figsize=(6, 6))
@@ -67,7 +67,7 @@ for i, (label, unit) in enumerate(zip(dol.labels, dol.unit)):
     ax.set_title(f"{WAVE}")
 
 plt.tight_layout()
-plt.savefig(os.path.join("..", "figures", f"{TEST}", f"{WAVE}_FD.pdf"), format="pdf")
+plt.savefig(os.path.join("figures", f"{TEST}", f"{WAVE}_FD.pdf"), format="pdf")
 
 # save dolphinn
-dol.save(os.path.join("..", "saved_models", f"{TEST}", f"{WAVE}_model"))
+dol.save(os.path.join("saved_models", f"{TEST}", f"{WAVE}_model"))
