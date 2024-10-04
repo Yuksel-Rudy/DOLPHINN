@@ -184,7 +184,7 @@ class DOLPHINN:
         supervised_data = self.prep.series_to_supervised(
             scaled,
             wind_var_number=None,
-            wave_var_number=[len(self.dof) + 1 if self.wave_prediction else None],
+            wave_var_number=len(self.dof) + 1 if self.wave_prediction else None ,
             n_in=self.n,
             n_out=self.m,
             wind_predictor=self.wind_prediction,
@@ -315,7 +315,7 @@ class DOLPHINN:
         supervised_data = data.series_to_supervised(
             data=scaled,
             wind_var_number=None,
-            wave_var_number=[len(self.dof) + 1 if self.wave_prediction else None],
+            wave_var_number=len(self.dof) + 1 if self.wave_prediction else None,
             n_in=self.n,
             n_out=self.m,
             wind_predictor=self.wind_prediction,
