@@ -435,7 +435,9 @@ class DOLPHINN:
         smalldata.columns = ["Time"] + self.dof
 
         data = p2v.PreProcess(raw_dataset=smalldata)
-        data.time_interpolator(self.timestep)
+        data_deltaT5 = np.round(data.dataset['Time'].iloc[1] - data.dataset['Time'].iloc[0], 5)
+        if not self.timestep==data_deltaT5:
+            data.time_interpolator(self.timestep)
         dof_df = data.dataset[self.dof]
         dofwve_df = dof_df
 
@@ -484,9 +486,14 @@ class DOLPHINN:
             y_hat = pd.DataFrame(reversed_array[-(self.m + int(history / self.timestep)):, :len(self.dof)])
 
         t_pred = time[-(future_index_original + int(history/input_timestep)):].reset_index(drop=True)
-        y_hat = pd.DataFrame(
-            np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T,
-            columns=past_wave.columns[self.label_idx])
+        if self.label_idx:
+            y_hat = pd.DataFrame(
+                np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T,
+                columns=past_wave.columns[self.label_idx])
+        else:
+            y_hat = pd.DataFrame(
+                np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T,
+                columns=past_wave.columns)            
 
         # # Unify mean values
         # y_hat += dof_df.mean() - y_hat.mean()
