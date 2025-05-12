@@ -13,7 +13,7 @@ from tensorflow.keras.models import load_model
 
 
 class DOLPHINN:
-    def __init__(self):
+    def __init__(self, config_path=None):
         self.dropped_labels = None
         self.label_idx = None
         self.features = None
@@ -46,6 +46,9 @@ class DOLPHINN:
         self.config_path = None
 
         self.mlstm_wrp = p2v.MLSTM()
+        if config_path:
+            self.config_path = config_path
+            self.load_config()
 
     def save(self, directory):
         """Save the complete state of the class."""

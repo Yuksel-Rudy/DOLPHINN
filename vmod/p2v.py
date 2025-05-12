@@ -147,10 +147,10 @@ class PreProcess():
             agg = agg.drop(columns=wind_cols)
 
             # The old way to concatenate
-            agg = pd.concat([agg, wind_df], axis=1)
+            # agg = pd.concat([agg, wind_df], axis=1)
 
             # The new way to concatenate
-            # agg = pd.concat([agg.reset_index(drop=True), wind_df.reset_index(drop=True)], axis=1)
+            agg = pd.concat([agg.reset_index(drop=True), wind_df.reset_index(drop=True)], axis=1)
 
         # Interpolate wave future data if needed
         if wave_predictor:
