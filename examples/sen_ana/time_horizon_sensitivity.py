@@ -17,7 +17,7 @@ matplotlib.rcParams['font.family'] = 'Times New Roman'
 
 test = "sen_ana"
 wave = "IR1"
-time_horizon = [20, 25, 30, 35, 40, 45]  # in seconds
+time_horizon = [80]  # in seconds
 
 config_file_path = os.path.join("dol_input", "sen_ana", f"{wave}_tau_x.yaml")
 if not os.path.exists(os.path.join("figures", f"{test}")):
@@ -55,7 +55,7 @@ for th in time_horizon:
 
     plt.tight_layout()
     plt.savefig(os.path.join("figures", f"{test}", f"{wave}_TD_{th}.pdf"), format="pdf")
-    dol.save(os.path.join("saved_models", f"{test}", f"2Buoys_{wave}_model_{th}"))
+    dol.save(os.path.join("saved_models", f"{test}", f"{wave}_model_{th}"))
 
 time_horizon = np.array(time_horizon)
 maes = np.array(maes).flatten()
@@ -65,5 +65,4 @@ fig = plt.figure(figsize=(6, 6))
 plt.bar(time_horizon, maes)
 plt.xlabel('prediction horizon (s)')
 plt.ylabel('MAE')
-plt.savefig(os.path.join("figures", f"{test}", f"2Buoys_{wave}_MAE_vs_time_horizon.pdf"), format="pdf")
-plt.show()
+plt.savefig(os.path.join("figures", f"{test}", f"{wave}_MAE_vs_time_horizon.pdf"), format="pdf")
