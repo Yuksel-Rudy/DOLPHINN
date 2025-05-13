@@ -4,8 +4,37 @@ import numpy as np
 import matplotlib.pyplot as plt
 from vmod.zero_crossing import zero_up_crossing as zuc
 
+def solve_sigma(x_target, x0=0, epsilon=0.01):
+    """
+    Solve for sigma given decay location and desired amplitude.
+    
+    Parameters:
+    - x_target: location where amplitude ~ epsilon
+    - x0: initial location of wave group (default 0)
+    - epsilon: target amplitude fraction (e.g., 0.01 for 1%)
+
+    Returns:
+    - sigma: the Gaussian envelope standard deviation
+    """
+    return abs(x_target - x0) / np.sqrt(-2 * np.log(epsilon))
+
+def gaussian_envelope(x, x0=0, sigma=400):
+    """
+    Compute Gaussian envelope transparency based on distance.
+    
+    Parameters:
+    - x: array of positions
+    - x0: center of envelope (default 0)
+    - sigma: standard deviation of envelope (spread of the energy)
+    
+    Returns:
+    - alpha: array of alpha values (0 to 1)
+    """
+
+    return np.exp(-((x - x0)**2) / (2 * sigma**2))
+
 test = "group_velocity"
-wave = "1"
+wave = "4"
 if not os.path.exists(os.path.join("figures", f"{test}")):
     os.makedirs(os.path.join("figures", f"{test}"))
 
@@ -109,7 +138,7 @@ x3 = x1 + 144.83
 x4 = x1 + 180.95
 x5 = x1 + 302.47
 tMax = 100
-t = np.array([0, tMax])
+t = np.linspace(0, tMax, 100)
 l1_max = cg_max1_mean*t + x1
 l2_max = cg_max2_mean*t + x2
 l3_max = cg_max3_mean*t + x3
@@ -123,21 +152,24 @@ l4_min = cg_min4_mean*t + x4
 l5_min = cg_min5_mean*t + x5
 
 plt.figure(figsize=(5, 5))
-plt.plot(t, l1_max, color='blue', label='Max Group Velocity')
-plt.plot(t, l2_max, color='blue')
-plt.plot(t, l3_max, color='blue')
-plt.plot(t, l4_max, color='blue')
-plt.plot(t, l5_max, color='blue')
-plt.plot(t, l1_min, color='red', label='Min Group Velocity', linestyle='--')
-plt.plot(t, l2_min, color='red', linestyle='--')
-plt.plot(t, l3_min, color='red', linestyle='--')
-plt.plot(t, l4_min, color='red', linestyle='--')
-plt.plot(t, l5_min, color='red', linestyle='--')
+max_lines = [l1_max, l2_max, l3_max, l4_max, l5_max]
+min_lines = [l1_min, l2_min, l3_min, l4_min, l5_min]
+starts = [x1, x2, x3, x4, x5]
+SIGMA = solve_sigma(x5, x0=0, epsilon=0.01)
+for line, x0 in zip(max_lines, starts):
+    alpha_vals = gaussian_envelope(line, x0=x0, sigma=SIGMA)
+    for i in range(1, len(t)):
+        plt.plot(t[i-1:i+1], line[i-1:i+1], color='blue', alpha=alpha_vals[i], linewidth=1.5, label='Max Group Velocity' if i == 1 and x0 == x1 else "")
+
+for line, x0 in zip(min_lines, starts):
+    alpha_vals = gaussian_envelope(line, x0=x0, sigma=SIGMA)
+    for i in range(1, len(t)):
+        plt.plot(t[i-1:i+1], line[i-1:i+1], color='red', alpha=alpha_vals[i], linewidth=1.5, label='Min Group Velocity' if i == 1 and x0 == x1 else "")
 
 plt.hlines(x5, xmin=0, xmax=tMax, color='black', label='Location of Interest', linestyles='--')
 plt.xlabel('Time (s)')
 plt.ylabel('Location (m)')
 plt.legend()
 plt.grid()
-plt.savefig(os.path.join("figures", f"{test}", f"IR-{wave}_group_velocity.pdf"), format="pdf")
+plt.savefig(os.path.join("figures", f"{test}", f"IR-{wave}_group_velocity_with_decay.pdf"), format="pdf")
 

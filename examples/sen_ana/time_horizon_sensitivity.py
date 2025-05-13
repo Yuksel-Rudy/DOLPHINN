@@ -41,7 +41,25 @@ for th in time_horizon:
     # post-processing (TD)
     fig = plt.figure(figsize=(6, 6))
     gs = gridspec.GridSpec(len(dol.labels), 1)
-
+    for i, (label, unit) in enumerate(zip(dol.labels, dol.unit)):
+        ax = plt.subplot(gs[i])
+        ax.plot(t, y[:, i], label='experiment', color='black')
+        ax.plot(t, y_hat[:, i], label='DOLPHINN', color='red', linestyle='-')
+        ax.set_xlabel('t [s]')
+        ax.set_ylabel(f"wave elevation {unit}")
+        ax.set_xlim((1000, 1150))
+        ax.legend(loc='upper right')
+        ax.grid()
+        ax.set_title(f"{wave} - Time Horizon: {th}")
+        
+        # Calculate the range of y and y_hat
+        y_range = np.max(y[:, i]) - np.min(y[:, i])
+        y_hat_range = np.max(y_hat[:, i]) - np.min(y_hat[:, i])
+        relative_size = y_hat_range / y_range
+        ax.text(0.5, 0.9, f"Relative Size: {relative_size:.2f}", transform=ax.transAxes, ha='center')
+        
+    plt.tight_layout()
+    plt.savefig(os.path.join("figures", f"{test}", f"{wave}_TD_{th}.pdf"), format="pdf")
     for i, (label, unit) in enumerate(zip(dol.labels, dol.unit)):
         ax = plt.subplot(gs[i])
         ax.plot(t, y[:, i], label='experiment', color='black')
