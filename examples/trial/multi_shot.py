@@ -8,7 +8,7 @@ def run_prediction(
     table_path,
     start_time=100,
     present_time=8000,
-    history_duration=1000,
+    history=1000,
     numShots=1,
     plot_result=True,
     target_column="wave5"
@@ -36,26 +36,42 @@ def run_prediction(
     t_pred, y_pred = dol.predict(
         time=time,
         data=data,
-        history=history_duration,
-        multiShot=use_multi_shot,
+        history=history,
         numShots=numShots
     )
 
     # --- Optional: Custom Overlay Plot ---
-    if plot_result and target_column in data.columns:
+    if plot_result and (target_column in data.columns or target_column == "ALL"):
         import matplotlib.pyplot as plt
-        plt.figure(figsize=(10, 5))
-        plt.plot(table['Time'].iloc[:present_idx], table[target_column].iloc[:present_idx], label='Observed Past', color='black')
-        plt.plot(table['Time'].iloc[present_idx:future_idx], table[target_column].iloc[present_idx:future_idx], label='Actual Future', color='green')
-        plt.plot(t_pred, y_pred[target_column], label='Predicted', linestyle='--', color='red')
-        plt.xlabel("Time")
-        plt.ylabel(target_column)
-        plt.title(f"Prediction for {target_column}")
-        plt.xlim(t_present - 250, t_present + numShots * t_horizon)
-        plt.legend()
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
+        if target_column in data.columns:
+            plt.figure(figsize=(10, 5))
+            plt.plot(table['Time'].iloc[:present_idx], table[target_column].iloc[:present_idx], label='Observed Past', color='black')
+            plt.plot(table['Time'].iloc[present_idx:future_idx], table[target_column].iloc[present_idx:future_idx], label='Actual Future', color='green')
+            plt.plot(t_pred, y_pred[target_column], label='Predicted', linestyle='--', color='red')
+            plt.xlabel("Time")
+            plt.ylabel(target_column)
+            plt.title(f"Prediction for {target_column}")
+            plt.xlim(t_present - 50, t_present + numShots * t_horizon)
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.show()
+        elif plot_result and target_column == "ALL":
+            num_columns = len(data.columns)
+            fig, axes = plt.subplots(num_columns, 1, figsize=(10, 5 * num_columns), sharex=True)
+            for i, col in enumerate(data.columns):
+                ax = axes[i] if num_columns > 1 else axes
+                ax.plot(table['Time'].iloc[:present_idx], table[col].iloc[:present_idx], label='Observed Past', color='black')
+                ax.plot(table['Time'].iloc[present_idx:future_idx], table[col].iloc[present_idx:future_idx], label='Actual Future', color='green')
+                ax.plot(t_pred, y_pred[col], label='Predicted', linestyle='--', color='red')
+                ax.set_ylabel(col)
+                ax.set_xlim(t_present - 50, t_present + numShots * t_horizon)
+                ax.grid(True)
+            ax.legend()
+            axes[-1].set_xlabel("Time") if num_columns > 1 else axes.set_xlabel("Time")
+            fig.suptitle("Prediction for All Columns")
+            plt.tight_layout(rect=[0, 0, 1, 0.97])
+            plt.show()
 
     return t_pred, y_pred
 
@@ -63,7 +79,7 @@ def run_prediction(
 if __name__ == "__main__":
     # --- Configuration ---
     trial_name = "trial"
-    input_name = "siso"
+    input_name = "5v_mimo"
     model_path = os.path.join("saved_models", trial_name, f"model_{input_name}")
     table_path = os.path.join("data", "FOCAL_wavedata", "scaledup", "IR-1.csv")
 
@@ -74,7 +90,7 @@ if __name__ == "__main__":
         start_time=100,
         present_time=8000,
         history=1000,
-        numShots=50,
+        numShots=1,
         plot_result=True,
-        target_column="wave1"
+        target_column="ALL"
     )

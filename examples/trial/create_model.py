@@ -12,7 +12,7 @@ plt.rcParams.update({'font.size': 18})
 matplotlib.rcParams['font.family'] = 'Times New Roman'
 
 trial = "trial"
-input = "siso"
+input = "5v_mimo"
 
 config_file_path = os.path.join("dol_input", f"{trial}", f"{input}.yaml")
 dol = DOL(config_path=config_file_path)
@@ -28,5 +28,7 @@ ax.plot(t, y[:, -1], label='experiment', color='black')
 ax.plot(t, y_hat[:, -1], label='DOLPHINN', color='red', linestyle='-')
 plt.show()
 
-print('Saving model...')
-dol.save(os.path.join("saved_models", f"{trial}", f"model_{input}"))
+# Save the model
+model_dir = os.path.join("saved_models", f"{trial}", f"model_{input}")
+print(f'Saving model to {model_dir}')
+dol.save(model_dir)

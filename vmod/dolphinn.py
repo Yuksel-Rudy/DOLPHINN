@@ -360,8 +360,7 @@ class DOLPHINN:
             time (pd.Series): Time values including both past and target prediction window.
             data (pd.DataFrame): Observed data values up to present (must match DOF).
             history (float): Seconds of past data to include in prediction output.
-            multiShot (bool): Whether to use multi-shot iterative prediction.
-            numShots (int): Number of prediction shots (only relevant if multiShot=True).
+            numShots (int): Number of prediction shots. If numShots=1, it's a single-shot prediction.
             plot (bool): Whether to show a plot of prediction vs. ground truth (if available).
 
         Returns:
@@ -373,7 +372,7 @@ class DOLPHINN:
         time_buffer = time.copy()
         data_buffer = data.copy()
 
-        for i in range(numShots if multiShot else 1):
+        for i in range(numShots):
             t_hat, y_hat = self.predictCore(time_buffer, data_buffer, history=history)
 
             t_all.append(t_hat)
