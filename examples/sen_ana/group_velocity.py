@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from vmod.zero_crossing import zero_up_crossing as zuc
 
-def solve_sigma(x_target, x0=0, epsilon=0.01):
+def solve_sigma(t_target, t0=0, epsilon=0.01):
     """
     Solve for sigma given decay location and desired amplitude.
     
@@ -16,9 +16,9 @@ def solve_sigma(x_target, x0=0, epsilon=0.01):
     Returns:
     - sigma: the Gaussian envelope standard deviation
     """
-    return abs(x_target - x0) / np.sqrt(-2 * np.log(epsilon))
+    return abs(t_target - t0) / np.sqrt(-2 * np.log(epsilon))
 
-def gaussian_envelope(x, x0=0, sigma=400):
+def gaussian_envelope(t, t0=0, sigma=400):
     """
     Compute Gaussian envelope transparency based on distance.
     
@@ -31,7 +31,7 @@ def gaussian_envelope(x, x0=0, sigma=400):
     - alpha: array of alpha values (0 to 1)
     """
 
-    return np.exp(-((x - x0)**2) / (2 * sigma**2))
+    return np.exp(-((t - t0)**2) / (2 * sigma**2))
 
 test = "group_velocity"
 wave = "4"
@@ -155,16 +155,16 @@ plt.figure(figsize=(5, 5))
 max_lines = [l1_max, l2_max, l3_max, l4_max, l5_max]
 min_lines = [l1_min, l2_min, l3_min, l4_min, l5_min]
 starts = [x1, x2, x3, x4, x5]
-SIGMA = solve_sigma(x5, x0=0, epsilon=0.01)
+SIGMA = solve_sigma(t_target=80, t0=0, epsilon=0.03)
 for line, x0 in zip(max_lines, starts):
-    alpha_vals = gaussian_envelope(line, x0=x0, sigma=SIGMA)
     for i in range(1, len(t)):
-        plt.plot(t[i-1:i+1], line[i-1:i+1], color='blue', alpha=alpha_vals[i], linewidth=1.5, label='Max Group Velocity' if i == 1 and x0 == x1 else "")
+        alpha_vals = gaussian_envelope(i, sigma=SIGMA)        
+        plt.plot(t[i-1:i+1], line[i-1:i+1], color='blue', alpha=alpha_vals, linewidth=1.5, label='Max Group Velocity' if i == 1 and x0 == x1 else "")
 
 for line, x0 in zip(min_lines, starts):
-    alpha_vals = gaussian_envelope(line, x0=x0, sigma=SIGMA)
     for i in range(1, len(t)):
-        plt.plot(t[i-1:i+1], line[i-1:i+1], color='red', alpha=alpha_vals[i], linewidth=1.5, label='Min Group Velocity' if i == 1 and x0 == x1 else "")
+        alpha_vals = gaussian_envelope(i, sigma=SIGMA)
+        plt.plot(t[i-1:i+1], line[i-1:i+1], color='red', alpha=alpha_vals, linewidth=1.5, label='Min Group Velocity' if i == 1 and x0 == x1 else "")
 
 plt.hlines(x5, xmin=0, xmax=tMax, color='black', label='Location of Interest', linestyles='--')
 plt.xlabel('Time (s)')

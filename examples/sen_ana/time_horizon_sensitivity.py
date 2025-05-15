@@ -32,7 +32,7 @@ for th in time_horizon:
     dol.m = int(np.round(dol.time_horizon / dol.timestep, 0))  # corresponding to TIME_HORIZON
     dol.n = int(np.round(dol.nm * dol.m))
     dol.future_lower_lim = dol.m
-    dol.train(labels_to_be_dropped=[1, 2, 3, 4])
+    dol.train()
     r_square, mae, y, y_hat = dol.test()
     t = np.linspace(0, (y.shape[0]-1)*dol.timestep, y.shape[0])
     maes.append(mae)
