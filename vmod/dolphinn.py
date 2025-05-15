@@ -10,7 +10,6 @@ import pickle
 import yaml
 import joblib
 from tensorflow.keras.models import load_model
-import dill
 
 class DOLPHINN:
     def __init__(self, config_path=None):
