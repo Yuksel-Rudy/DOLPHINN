@@ -116,25 +116,6 @@ class PreProcess():
 
         return agg
 
-    def zero_crossing(self, time, signal):
-        # Initialize variables
-        stime = []
-        sfinder = []
-        T = []
-        H = []
-        # Finding zero up crossings
-        for t in range(1, len(signal)):
-            if signal[t - 1] < 0 and signal[t] > 0:
-                stime.append(time[t])
-                sfinder.append(np.where(time[t] == time)[0][0])
-
-        # Calculating T and H
-        for i in range(1, len(sfinder)):
-            T.append(stime[i] - stime[i - 1])
-            H.append(np.ptp(signal[sfinder[i - 1]:sfinder[i]]))
-
-        return np.array(T), np.array(H), np.array(stime), np.array(sfinder)
-
     def average_top_third(self, signal):
         # Sort H in descending order
         signal_sorted = np.sort(signal)[::-1]
@@ -165,6 +146,25 @@ class PreProcess():
             self.dynTp[i] = self.average_top_third(T) * 1.05
             self.dynTi[i] = self.dataset['Time'].iloc[chkpnt]
 
+@staticmethod
+def zero_crossing(time, signal):
+    # Initialize variables
+    stime = []
+    sfinder = []
+    T = []
+    H = []
+    # Finding zero up crossings
+    for t in range(1, len(signal)):
+        if signal[t - 1] < 0 and signal[t] > 0:
+            stime.append(time[t])
+            sfinder.append(np.where(time[t] == time)[0][0])
+
+    # Calculating T and H
+    for i in range(1, len(sfinder)):
+        T.append(stime[i] - stime[i - 1])
+        H.append(np.ptp(signal[sfinder[i - 1]:sfinder[i]]))
+
+    return np.array(T), np.array(H), np.array(stime), np.array(sfinder)
 
 class MLSTM:
     def __init__(self):

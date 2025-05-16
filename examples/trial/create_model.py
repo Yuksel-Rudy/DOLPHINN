@@ -12,7 +12,7 @@ plt.rcParams.update({'font.size': 18})
 matplotlib.rcParams['font.family'] = 'Times New Roman'
 
 trial = "trial"
-input = "5v_mimo"
+input = "5v_mimo_th20_nm10"
 
 config_file_path = os.path.join("dol_input", f"{trial}", f"{input}.yaml")
 dol = DOL(config_path=config_file_path)

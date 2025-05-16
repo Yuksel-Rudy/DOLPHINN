@@ -360,7 +360,7 @@ class DOLPHINN:
             time (pd.Series): Time values including both past and target prediction window.
             data (pd.DataFrame): Observed data values up to present (must match DOF).
             history (float): Seconds of past data to include in prediction output.
-            numShots (int): Number of prediction shots. If numShots=1, it's a single-shot prediction.
+            numShots (int): Number of prediction shots.
             plot (bool): Whether to show a plot of prediction vs. ground truth (if available).
 
         Returns:
