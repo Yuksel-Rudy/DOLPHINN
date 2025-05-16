@@ -3,6 +3,17 @@ import pandas as pd
 import numpy as np
 from vmod.dolphinn import DOLPHINN as DOL
 from vmod.p2v import zero_crossing as zc
+
+def interpolateDF(table, delta_t=0.5):
+    t_old = table['Time'].values
+    t_new = np.arange(t_old.min(), t_old.max(), delta_t)
+    interp_data = {'Time': t_new}
+    for col in table.columns:
+        if col != 'Time':
+            interp_data[col] = np.interp(t_new, t_old, table[col].values)    
+    
+    return pd.DataFrame(interp_data)
+
 def run_prediction(
     modelDir,
     tablePath,
@@ -16,6 +27,9 @@ def run_prediction(
     dol = DOL()
     dol.load(modelDir)
     table = pd.read_csv(tablePath)
+
+    # Interpolate table before analysis
+    table = interpolateDF(table, delta_t=dol.timestep)
 
     # --- Find the time where the highest wave occured
     # Apply zero-crossing on the most downstream probe
@@ -123,9 +137,9 @@ if __name__ == "__main__":
     run_prediction(
         modelDir=modelDir,
         tablePath=tablePath,
-        deltaTime=-40,
+        deltaTime=-30,
         history=1000,
-        numShots=3,
+        numShots=2,
         plotResult=True,
         targetColumn="wave5"
     )

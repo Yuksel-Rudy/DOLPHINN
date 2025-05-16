@@ -373,6 +373,8 @@ class DOLPHINN:
         data_buffer = data.copy()
 
         for i in range(numShots):
+            if i>0:
+                history=0
             t_hat, y_hat = self.predictCore(time_buffer, data_buffer, history=history)
 
             t_all.append(t_hat)
@@ -435,7 +437,7 @@ class DOLPHINN:
         # Step 4: Preprocess
         prepped = p2v.PreProcess(raw_dataset=combined)
         if not np.isclose(prepped.dataset['Time'].iloc[1] - prepped.dataset['Time'].iloc[0], self.timestep):
-            prepped.time_interpolator(self.timestep)
+            prepped.time_interpolator(self.timestep)  # i do not trust this function. Best if the input are already interpolated.
 
         input_df = prepped.dataset[self.dof]
         scaled = self.scaler.transform(input_df)
