@@ -1,0 +1,32 @@
+batch_time: 8
+conversion:
+- 1
+- 1
+- 1
+- 1
+- 1
+dof:
+- wave1
+- wave2
+- wave3
+- wave4
+- wave5
+dropout: 0.0
+epochs: 100
+hidden_layer: 1
+lr: 0.001
+neuron_number: 100
+nm: 3
+time_horizon: 40
+timestep: 0.5
+train_ratio: 0.5
+training_dataset: data/FOCAL_wavedata/scaledup/IR-1.csv
+unit:
+- '[m]'
+- '[m]'
+- '[m]'
+- '[m]'
+- '[m]'
+valid_ratio: 0.25
+wave_prediction: null
+wind_prediction: null
