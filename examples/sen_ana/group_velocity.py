@@ -3,7 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from vmod.zero_crossing import zero_up_crossing as zuc
+from scipy.integrate import simpson
 
+plt.rcParams['font.family'] = 'Times New Roman'
 def solve_sigma(t_target, t0=0, epsilon=0.01):
     """
     Solve for sigma given decay location and desired amplitude.
@@ -51,8 +53,8 @@ wave5 = buoyData["wave5"].values
 g = 9.81  # m/s^2
 
 # For a given window of 20 seconds, calculate the zero-upcrossing, the maximum and minimum group velocity
-window = 50  # seconds
-window = int(window / (time[1] - time[0]))  # convert to number of samples
+windowT = 50  # seconds
+window = int(windowT / (time[1] - time[0]))  # convert to number of samples
 start_time = 0
 cg_max1 = []
 cg_max2 = []
@@ -68,7 +70,6 @@ cg_min5 = []
 for i in range(start_time, len(time), window):
     end_time = min(i + window, len(time))
     time_window = time[i:end_time]
-    print(f" {time_window[0]} s")
     wave1_window = wave1[i:end_time]
     wave2_window = wave2[i:end_time]
     wave3_window = wave3[i:end_time]
@@ -129,47 +130,107 @@ cg_min5_mean = np.mean(cg_min5)
 cg_max_all = [cg_max1_mean, cg_max2_mean, cg_max3_mean, cg_max4_mean, cg_max5_mean]
 cg_min_all = [cg_min1_mean, cg_min2_mean, cg_min3_mean, cg_min4_mean, cg_min5_mean]
 
+cg_MAX = np.max(cg_max_all)
+cg_MIN = np.min(cg_min_all)
 
+lower_omega = g/(2*cg_MAX)
+higher_omega = g/(2*cg_MIN)
 
+Tp = 9.02  # for IR-1
+omega_p = 2*np.pi/Tp
+
+lower_omega_factor = lower_omega / omega_p
+higher_omega_factor = higher_omega / omega_p
+
+print(f"lower omega: {lower_omega} \n")
+print(f"higher omega: {higher_omega} \n")
+print(f"lower omega factor: {lower_omega_factor} \n")
+print(f"higher omega factor: {higher_omega_factor} \n")
 
 x1 = 0
 x2 = x1 + 28.56
 x3 = x1 + 144.83
 x4 = x1 + 180.95
 x5 = x1 + 302.47
-tMax = 100
-t = np.linspace(0, tMax, 100)
-l1_max = cg_max1_mean*t + x1
-l2_max = cg_max2_mean*t + x2
-l3_max = cg_max3_mean*t + x3
-l4_max = cg_max4_mean*t + x4
-l5_max = cg_max5_mean*t + x5
+xMax = 1000
+x = np.linspace(0, xMax, 100)
 
-l1_min = cg_min1_mean*t + x1
-l2_min = cg_min2_mean*t + x2
-l3_min = cg_min3_mean*t + x3
-l4_min = cg_min4_mean*t + x4
-l5_min = cg_min5_mean*t + x5
-
-plt.figure(figsize=(5, 5))
-max_lines = [l1_max, l2_max, l3_max, l4_max, l5_max]
-min_lines = [l1_min, l2_min, l3_min, l4_min, l5_min]
 starts = [x1, x2, x3, x4, x5]
-SIGMA = solve_sigma(t_target=80, t0=0, epsilon=0.03)
-for line, x0 in zip(max_lines, starts):
-    for i in range(1, len(t)):
-        alpha_vals = gaussian_envelope(i, sigma=SIGMA)        
-        plt.plot(t[i-1:i+1], line[i-1:i+1], color='blue', alpha=alpha_vals, linewidth=1.5, label='Max Group Velocity' if i == 1 and x0 == x1 else "")
 
-for line, x0 in zip(min_lines, starts):
-    for i in range(1, len(t)):
-        alpha_vals = gaussian_envelope(i, sigma=SIGMA)
-        plt.plot(t[i-1:i+1], line[i-1:i+1], color='red', alpha=alpha_vals, linewidth=1.5, label='Min Group Velocity' if i == 1 and x0 == x1 else "")
+cg_max_list = [cg_max1, cg_max2, cg_max3, cg_max4, cg_max5]
+cg_min_list = [cg_min1, cg_min2, cg_min3, cg_min4, cg_min5]
 
-plt.hlines(x5, xmin=0, xmax=tMax, color='black', label='Location of Interest', linestyles='--')
-plt.xlabel('Time (s)')
-plt.ylabel('Location (m)')
-plt.legend()
+windowT = 25
+# plot the lines
+probes = "P1, P3, P5"
+i = 0
+for cg_max, cg_min in zip(cg_max1, cg_min1):
+    line_min = 1/cg_min * (x - starts[i]) - windowT
+    line_max = 1/cg_max * (x - starts[i])
+    intercept_point = (windowT) / (1/cg_min - 1/cg_max) + starts[i]
+    plt.fill_between(x, line_min, line_max, where=(x <= intercept_point), color='gray', alpha=0.01)
+# i = 1
+# for cg_max, cg_min in zip(cg_max2, cg_min2):
+#     line_min = 1/cg_min * (x - starts[i]) - windowT
+#     line_max = 1/cg_max * (x - starts[i])
+#     intercept_point = (windowT) / (1/cg_min - 1/cg_max) + starts[i]
+#     plt.fill_between(x, line_min, line_max, where=(x <= intercept_point), color='gray', alpha=0.01)
+i = 2
+for cg_max, cg_min in zip(cg_max3, cg_min3):
+    line_min = 1/cg_min * (x - starts[i]) - windowT
+    line_max = 1/cg_max * (x - starts[i])
+    intercept_point = (windowT) / (1/cg_min - 1/cg_max) + starts[i]
+    plt.fill_between(x, line_min, line_max, where=(x <= intercept_point), color='gray', alpha=0.01)
+# i = 3
+# for cg_max, cg_min in zip(cg_max4, cg_min4):
+#     line_min = 1/cg_min * (x - starts[i]) - windowT
+#     line_max = 1/cg_max * (x - starts[i])
+#     intercept_point = (windowT) / (1/cg_min - 1/cg_max) + starts[i]
+#     plt.fill_between(x, line_min, line_max, where=(x <= intercept_point), color='gray', alpha=0.01)
+i = 4
+for cg_max, cg_min in zip(cg_max5, cg_min5):
+    line_min = 1/cg_min * (x - starts[i]) - windowT
+    line_max = 1/cg_max * (x - starts[i])
+    intercept_point = (windowT) / (1/cg_min - 1/cg_max) + starts[i]
+    plt.fill_between(x, line_min, line_max, where=(x <= intercept_point), color='gray', alpha=0.01)
+
+
+plt.vlines(x5, ymin=0, ymax=100, color='black', label='Location of Interest', linestyles='--')
+plt.xlabel('Space (m)')
+plt.ylabel('Time (s)')
+plt.xlim(0, 1000)
+plt.ylim(0, 100)
+plt.title(probes)
+# plt.legend()
 plt.grid()
-plt.savefig(os.path.join("figures", f"{test}", f"IR-{wave}_group_velocity_with_decay.pdf"), format="pdf")
+plt.savefig(os.path.join("figures", f"{test}", f"IR{wave}_T_{windowT}_P_{probes}.pdf"), format="pdf")
 
+plt.show()
+
+# Calculate DPZ areas
+probe_labels = [f'P{i+1}' for i in range(5)]
+
+# Store areas for each probe
+areas_per_probe = [[] for _ in range(5)]
+
+# Compute areas
+for i, (cg_max_vals, cg_min_vals) in enumerate(zip(cg_max_list, cg_min_list)):
+    for cg_max, cg_min in zip(cg_max_vals, cg_min_vals):
+        line_min = 1 / cg_min * (x - starts[i]) - windowT
+        line_max = 1 / cg_max * (x - starts[i])
+        intercept_point = (windowT) / (1 / cg_min - 1 / cg_max) + starts[i]
+        mask = x <= intercept_point
+        area = simpson(line_max[mask] - line_min[mask], x[mask])
+        areas_per_probe[i].append(area)
+
+# Plotting the area evolution per probe
+plt.figure(figsize=(10, 6))
+for i, areas in enumerate(areas_per_probe):
+    plt.plot(range(len(areas)), areas, label=probe_labels[i])
+
+plt.xlabel('Instance')
+plt.ylabel(r'$A_{DPZ} (m.s)$')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
