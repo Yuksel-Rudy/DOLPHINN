@@ -36,7 +36,7 @@ def gaussian_envelope(t, t0=0, sigma=400):
     return np.exp(-((t - t0)**2) / (2 * sigma**2))
 
 test = "group_velocity"
-wave = "4"
+wave = "1"
 if not os.path.exists(os.path.join("figures", f"{test}")):
     os.makedirs(os.path.join("figures", f"{test}"))
 
