@@ -143,8 +143,8 @@ def get_predictionHorizon(ts, delta_0='solve_for', tau_max=60, plot=False):
         colors = plt.cm.magma(np.linspace(0.2, 0.8, n_components))
 
         for i in range(n_components):
-            ax.plot(x_normalized, delta[:, i], color=colors[i], alpha=0.3, label=f"$\delta_{i}$")
-            ax.plot(x_normalized, delta_smooth[:, i], color=colors[i], linewidth=2, label=f"$\delta_{i}$ smoothed")
+            ax.plot(x_normalized, delta[:, i], color=colors[i], alpha=0.3, label=f"$\delta^{i}$")
+            ax.plot(x_normalized, delta_smooth[:, i], color=colors[i], linewidth=2, label=f"$\delta^{i}$ smoothed")
             if taus[i] > 0:
                 tau_norm = (taus[i] / tau_max)
                 ax.axvline(tau_norm, color=colors[i], linestyle='--', linewidth=1)
