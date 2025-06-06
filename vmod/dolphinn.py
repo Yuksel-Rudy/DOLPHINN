@@ -337,11 +337,22 @@ class DOLPHINN:
             past_wave=self.wave_prediction,
             future_wave=self.wave_prediction)
 
+        orig_Y = self.mlstm_wrp.test_Y
+        dummy_array = np.zeros((orig_Y.shape[0], len(self.dof) + 1 if self.wave_prediction else len(self.dof)))
+        dummy_array[:, :len(self.dof)] = orig_Y
+        reversed_array = self.scaler.inverse_transform(dummy_array)
+        y = reversed_array[:, :len(self.dof)]
+        if self.labels_dropped:
+            y = reversed_array[:, self.label_idx]
+
         # Step 6: Predict using the model
         test_Y = self.mlstm_wrp.model.predict(self.mlstm_wrp.test_X)
 
         # Unscaling predicted data
-        dummy_array = np.zeros((test_Y.shape[0], len(self.dof) + 1))  # Adjust the shape if necessary
+        if self.wave_prediction:
+            dummy_array = np.zeros((test_Y.shape[0], len(self.dof) + 1))  # Adjust the shape if necessary
+        else:
+            dummy_array = np.zeros((test_Y.shape[0], len(self.dof)))
         dummy_array[:, :len(self.dof)] = test_Y
         reversed_array = self.scaler.inverse_transform(dummy_array)
         t_hat = np.linspace(time.iloc[-(future_index_original + int(history/input_timestep))].item(),
@@ -353,6 +364,12 @@ class DOLPHINN:
             y_hat = pd.DataFrame(reversed_array[-(self.m + int(history / self.timestep)):, :len(self.dof)])
 
         t_pred = time[-(future_index_original + int(history/input_timestep)):].reset_index(drop=True)
+        
+        if len(t_hat) != len(y_hat):
+            # I don't know really the reason of this error till now.
+            t_hat = t_hat[:len(y_hat)]
+            t_pred = t_pred.iloc[:len(y_hat)]
+
         y_hat = pd.DataFrame(
             np.array([np.interp(t_pred, t_hat, y_hat[col]) for col in y_hat.columns]).T, columns=state.columns)
 
@@ -364,7 +381,14 @@ class DOLPHINN:
         t_pred = t_pred.dropna()
         y_hat = y_hat.loc[t_pred.index].reset_index(drop=True)
         t_pred.reset_index(drop=True)
-        return t_pred, y_hat
+
+        # calculate error:
+        mae = np.zeros(len(self.labels))
+        labels = list(np.arange(1, len(self.labels) + 1, 1))
+        for i, label in enumerate(labels):
+            label_index = label - 1
+            mae[i] = mean_absolute_error(y[:, label_index]-np.mean(y[:, label_index]), reversed_array[:, label_index]-np.mean(reversed_array[:, label_index]))
+        return t_pred, y_hat, mae
 
     def wrp_predict(self, time, past_wave, history=0):
         """
